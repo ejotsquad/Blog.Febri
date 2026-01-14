@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLOG-FEBRI BIONILLE</title>
+    <link rel="icon" href="https://febribionille.xyz/IMG/VEKTOR%20NEW%20LOGO%20(1)PNG.png" type="image/png">
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Icons (Lucide) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .content-body { color: #374151; }
+        .content-body p { margin-bottom: 1rem; line-height: 1.6; }
+        .content-body h1, .content-body h2, .content-body h3 { font-weight: bold; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #111827; }
+        .content-body h1 { font-size: 2em; }
+        .content-body h2 { font-size: 1.5em; }
+        .content-body h3 { font-size: 1.17em; }
+        .content-body ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
+        .content-body ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
+        .content-body a { color: #4f46e5; text-decoration: underline; }
+        .content-body img, .content-body iframe, .content-body video { max-width: 100%; border-radius: 0.5rem; margin: 1rem 0; }
+        .editor-content { min-height: 300px; outline: none; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* Animation for Like Button */
+        @keyframes heart-bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        .animate-bounce-click { animation: heart-bounce 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-100 to-black">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- KONFIGURASI API ---
+        const API_URL = 'api.php'; // Pastikan file api.php ada di folder yang sama
+
+        // --- UTILS ---
+        const generateId = () => Math.random().toString(36).substr(2, 9);
+        const getCurrentDate = () => new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        const stripHtml = (html) => {
+            let tmp = document.createElement("DIV");
+            tmp.innerHTML = html;
+            return tmp.textContent || tmp.innerText || "";
+        };
+
+        // Fallback Data (Data Dummy untuk Preview)
+        const initialPosts = [
+        ];
+
+        // --- COMPONENTS ---
+
+        // 1. Navbar
+        const Navbar = ({ onViewChange, currentView, user, onLogout }) => {
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [isMenuOpen]);
+
+            const MenuLink = ({ view, label, onClick }) => {
+                const isActive = currentView === view || (view === 'home' && currentView === 'post');
+                return (
+                    <button 
+                        onClick={onClick}
+                        className={`px-3 py-2 text-sm font-medium transition-all duration-200 
+                        ${isActive 
+                            ? 'text-white border-b-2 border-white' 
+                            : 'text-gray-300 hover:text-white hover:border-b-2 hover:border-gray-400 border-b-2 border-transparent'
+                        }`}
+                    >
+                        {label}
+                    </button>
+                );
+            };
+
+            return (
+                <nav className="bg-red-900 border-b border-gray-500 sticky top-0 z-50 shadow-lg">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="relative flex justify-between h-16 items-center">
+                            
+                            <div className="flex items-center cursor-pointer flex-shrink-0" onClick={() => window.location.reload()}>
+                                <img src="https://febribionille.xyz/IMG/VEKTOR%20NEW%20LOGO%20(1)PNG.png" alt="Logo" className="h-12 w-12 mr-3" />
+                                <span className="font-bold text-xl text-white">FEBRI BIONILLE</span>
+                            </div>
+                            
+                            <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 space-x-8">
+                                <a 
+                                    href="https://www.febribionille.xyz" 
+                                    target="_blank"
+                                    className="px-3 py-2 text-sm font-medium transition-all duration-200 text-gray-300 hover:text-white hover:border-b-2 hover:border-gray-400 border-b-2 border-transparent"
+                                >
+                                    
+                                </a>
+                                <MenuLink 
+                                    view="home" 
+                                    label="Beranda" 
+                                    onClick={() => { onViewChange('home'); setIsMenuOpen(false); }} 
+                                />
+                                {user && (
+                                    <MenuLink 
+                                        view="admin" 
+                                        label="Dashboard" 
+                                        onClick={() => { onViewChange('admin'); setIsMenuOpen(false); }} 
+                                    />
+                                )}
+                            </div>
+
+                            <div className="hidden md:flex items-center">
+                                {user ? (
+                                    <button 
+                                        onClick={() => { onLogout(); setIsMenuOpen(false); }}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition shadow-md"
+                                    >
+                                        Logout ({user.name})
+                                    </button>
+                                ) : (
+                                    <button 
+                                        onClick={() => { onViewChange('login'); setIsMenuOpen(false); }}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-800 hover:font-bold rounded-md transition shadow-md"
+                                    >
+                                        Login Admin
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="flex items-center md:hidden">
+                                <button 
+                                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                    className="p-2 rounded-md text-gray-200 hover:text-white hover:bg-white/10 focus:outline-none"
+                                >
+                                    <i data-lucide={isMenuOpen ? "x" : "menu"} className="h-6 w-6"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {isMenuOpen && (
+                        <div className="md:hidden border-t border-gray-600 bg-gray-800 shadow-lg">
+                            <div className="px-4 pt-2 pb-4 space-y-2">
+                                <a 
+                                    href="https://www.febribionille.xyz" 
+                                    target="_blank"
+                                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+                                >
+                                    
+                                </a>
+                                <button 
+                                    onClick={() => { onViewChange('home'); setIsMenuOpen(false); }}
+                                    className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium ${currentView === 'home' || currentView === 'post' ? 'bg-gray-700 text-white border-l-4 border-indigo-500' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
+                                >
+                                    Beranda
+                                </button>
+                                {user ? (
+                                    <>
+                                        <button 
+                                            onClick={() => { onViewChange('admin'); setIsMenuOpen(false); }}
+                                            className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium ${currentView === 'admin' ? 'bg-gray-700 text-white border-l-4 border-indigo-500' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
+                                        >
+                                            Dashboard
+                                        </button>
+                                        <button 
+                                            onClick={() => { onLogout(); setIsMenuOpen(false); }}
+                                            className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-400 hover:bg-gray-700 hover:text-red-300"
+                                        >
+                                            Logout ({user.username})
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button 
+                                        onClick={() => { onViewChange('login'); setIsMenuOpen(false); }}
+                                        className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-100 hover:bg-gray-700 hover:text-red-500"
+                                    >
+                                        Login Admin
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </nav>
+            );
+        };
+
+        // 2. Public Home View (PAGINATION UPDATE)
+        const HomeView = ({ posts, onViewPost }) => {
+            const [searchQuery, setSearchQuery] = useState('');
+            const [filterCategory, setFilterCategory] = useState(null);
+            
+            // --- STATE PAGINATION ---
+            const [currentPage, setCurrentPage] = useState(1);
+            const postsPerPage = 5; // Tampilkan 5 postingan
+
+            const popularPosts = [...posts]
+                .sort((a, b) => ((b.views || 0) + (b.likes || 0)) - ((a.views || 0) + (a.likes || 0)))
+                .slice(0, 3);
+
+            const labelCounts = posts.reduce((acc, post) => {
+                if(post.labels) {
+                    post.labels.forEach(label => {
+                        acc[label] = (acc[label] || 0) + 1;
+                    });
+                }
+                return acc;
+            }, {});
+
+            const archiveCounts = posts.reduce((acc, post) => {
+                const parts = post.date ? post.date.split(' ') : [];
+                if(parts.length >= 3) {
+                    const monthYear = `${parts[1]} ${parts[2]}`;
+                    acc[monthYear] = (acc[monthYear] || 0) + 1;
+                }
+                return acc;
+            }, {});
+
+            const filteredPosts = posts.filter(post => {
+                const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                      (post.labels && post.labels.some(l => l.toLowerCase().includes(searchQuery.toLowerCase())));
+                
+                let matchesFilter = true;
+                if (filterCategory) {
+                    const isLabel = post.labels && post.labels.includes(filterCategory);
+                    const isArchive = post.date && post.date.includes(filterCategory);
+                    matchesFilter = isLabel || isArchive;
+                }
+
+                return matchesSearch && matchesFilter;
+            });
+
+            // --- LOGIKA PAGINATION ---
+            const indexOfLastPost = currentPage * postsPerPage;
+            const indexOfFirstPost = indexOfLastPost - postsPerPage;
+            const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
+            const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+
+            const paginate = (pageNumber) => {
+                setCurrentPage(pageNumber);
+                window.scrollTo({ top: 350, behavior: 'smooth' }); // Scroll ke atas list artikel
+            };
+
+            const handleFilterClick = (category) => {
+                if (filterCategory === category) {
+                    setFilterCategory(null);
+                } else {
+                    setFilterCategory(category);
+                }
+                setSearchQuery('');
+                setCurrentPage(1); // Reset ke halaman 1 saat filter berubah
+            };
+
+            return (
+                <div className="w-full">
+                    
+                    {/* Header Website (Full Width / No Padding) */}
+                    <div className="max-w-7xl mx-auto">
+                        <header className="bg-gray-300 p-10 md:p-16 mb-10 text-center text-white shadow-2xl relative overflow-hidden border-b-4 border-gray-600">
+                            <div className="relative z-10 max-w-4xl mx-auto">
+                                <h1 className="text-4xl text-red-600 md:text-6xl font-extrabold mb-6 tracking-tight">Hallo Semuanya,</h1>
+                                <p className="text-gray-800 text-sm md:text-xl leading-relaxed font-light">
+                                    Selamat datang di blog pribadi saya! Di sini, saya berbagi berbagai artikel menarik seputar teknologi, pengembangan web, tips & trik, serta pengalaman pribadi saya dalam dunia digital. Jelajahi postingan terbaru, temukan topik favorit Anda, dan jangan ragu untuk berinteraksi melalui komentar. Terima kasih telah mengunjungi MYBlog!
+                                </p>
+                            </div>
+                            <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-700 via-gray-900 to-black"></div>
+                            <div className="absolute -top-24 -right-24 w-96 h-96 bg-red-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+                            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
+                        </header>
+                    </div>
+
+                    {/* Main Content (With Padding) */}
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                            <div className="lg:col-span-2">
+                                {/* HEADER ARTIKEL DENGAN PENCARIAN DI SAMPING */}
+                                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                                    <h2 className="text-2xl font-bold text-gray-900 whitespace-nowrap">
+                                        {filterCategory ? `Kategori: ${filterCategory}` : (searchQuery ? `Hasil Cari: "${searchQuery}"` : 'POSTINGAN TERBARU')}
+                                    </h2>
+                                    
+                                    <div className="flex items-center gap-3 w-full md:w-auto">
+                                        <div className="relative w-full md:w-64">
+                                            <input 
+                                                type="text" 
+                                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm shadow-sm"
+                                                placeholder="Cari disini.."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                            />
+                                            <i data-lucide="search" className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i>
+                                        </div>
+
+                                        {(filterCategory || searchQuery) && (
+                                            <button 
+                                                onClick={() => { setFilterCategory(null); setSearchQuery(''); }}
+                                                className="text-sm text-red-500 hover:text-red-700 font-medium whitespace-nowrap bg-red-50 px-3 py-2 rounded-lg border border-red-100 hover:bg-red-100 transition"
+                                            >
+                                                Reset
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                <div className="grid gap-8">
+                                    {currentPosts.length === 0 ? (
+                                        <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
+                                            <i data-lucide="search-x" className="w-12 h-12 text-gray-300 mx-auto mb-3"></i>
+                                            <p className="text-gray-500">Tidak ada artikel yang ditemukan.</p>
+                                        </div>
+                                    ) : (
+                                        currentPosts.map(post => (
+                                            <div key={post.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition duration-300 overflow-hidden border border-gray-100 flex flex-col md:flex-row h-auto md:h-56">
+                                                <div className="md:w-1/3 bg-gray-200 relative h-48 md:h-auto">
+                                                    <img src={post.image} alt={post.title} className="w-full h-full object-cover" onError={(e) => e.target.src = 'https://placehold.co/600x400?text=No+Image'} />
+                                                </div>
+                                                <div className="p-6 md:w-2/3 flex flex-col">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <span className="text-xs font-semibold text-indigo-500 uppercase tracking-wide">
+                                                            {post.labels && post.labels[0] ? post.labels[0] : 'Artikel'}
+                                                        </span>
+                                                        <span className="text-xs text-gray-400">{post.date}</span>
+                                                    </div>
+                                                    <h3 
+                                                        className="text-xl font-bold text-gray-900 mb-2 cursor-pointer hover:text-indigo-600 transition line-clamp-2"
+                                                        onClick={() => onViewPost(post)}
+                                                    >
+                                                        {post.title}
+                                                    </h3>
+                                                    <p className="text-gray-600 text-sm mb-4 flex-1 line-clamp-2">
+                                                        {post.excerpt || stripHtml(post.content).substring(0, 100) + '...'}
+                                                    </p>
+                                                    <div className="flex items-center justify-between mt-auto">
+                                                        <div className="flex items-center text-xs text-gray-400 space-x-3">
+                                                            <span className="flex items-center"><i data-lucide="eye" className="w-3 h-3 mr-1"></i> {post.views}</span>
+                                                            <span className="flex items-center"><i data-lucide="heart" className="w-3 h-3 mr-1"></i> {post.likes}</span>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => onViewPost(post)}
+                                                            className="text-indigo-600 font-medium text-sm hover:underline"
+                                                        >
+                                                            Baca Selengkapnya <i data-lucide="arrow-right" className="w-4 h-4 inline-block ml-1"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+
+                                {/* PAGINATION CONTROLS */}
+                                {filteredPosts.length > postsPerPage && (
+                                    <div className="mt-12 flex flex-col items-center">
+                                        <div className="flex justify-center items-center space-x-2">
+                                            {/* Prev Button */}
+                                            <button 
+                                                onClick={() => paginate(currentPage - 1)}
+                                                disabled={currentPage === 1}
+                                                className={`px-3 py-2 rounded-lg border ${currentPage === 1 ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                                                title="Sebelumnya"
+                                            >
+                                                <i data-lucide="chevron-left" className="w-5 h-5"></i>
+                                            </button>
+                                            
+                                            {/* Page Numbers */}
+                                            {Array.from({ length: totalPages }, (_, i) => (
+                                                <button 
+                                                    key={i+1} 
+                                                    onClick={() => paginate(i+1)} 
+                                                    className={`w-10 h-10 rounded-lg border font-medium transition ${currentPage === i+1 ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                                                >
+                                                    {i+1}
+                                                </button>
+                                            ))}
+
+                                            {/* Next Button */}
+                                            <button 
+                                                onClick={() => paginate(currentPage + 1)}
+                                                disabled={currentPage === totalPages}
+                                                className={`px-3 py-2 rounded-lg border ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                                                title="Selanjutnya"
+                                            >
+                                                <i data-lucide="chevron-right" className="w-5 h-5"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        {/* "Lihat Postingan Lama" Button */}
+                                        {currentPage < totalPages && (
+                                            <button 
+                                                onClick={() => paginate(currentPage + 1)}
+                                                className="mt-6 text-indigo-600 font-bold hover:text-indigo-800 flex items-center transition"
+                                            >
+                                                
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="lg:col-span-1 space-y-8">
+                                {/* PENCARIAN DI SIDEBAR DIHAPUS, DIPINDAH KE ATAS */}
+
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                    <h3 className="font-bold text-gray-900 mb-4 flex items-center">
+                                        <i data-lucide="trending-up" className="w-5 h-5 mr-2 text-indigo-500"></i> Populer
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {popularPosts.map((post, idx) => (
+                                            <div key={post.id} className="flex items-start group cursor-pointer" onClick={() => onViewPost(post)}>
+                                                <div className="text-2xl font-bold text-gray-200 mr-3 group-hover:text-indigo-200 transition">0{idx + 1}</div>
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-gray-800 group-hover:text-indigo-600 transition line-clamp-2">
+                                                        {post.title}
+                                                    </h4>
+                                                    <div className="text-xs text-gray-500 mt-1 flex items-center">
+                                                        <i data-lucide="eye" className="w-3 h-3 mr-1"></i> {post.views} Views
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {popularPosts.length === 0 && <p className="text-sm text-gray-500">Belum ada data.</p>}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                    <h3 className="font-bold text-gray-900 mb-4 flex items-center">
+                                        <i data-lucide="tag" className="w-5 h-5 mr-2 text-indigo-500"></i> Kategori
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {Object.keys(labelCounts).length > 0 ? (
+                                            Object.keys(labelCounts).map(label => (
+                                                <button 
+                                                    key={label}
+                                                    onClick={() => handleFilterClick(label)}
+                                                    className={`text-sm px-3 py-1.5 rounded-lg border transition flex items-center justify-between ${filterCategory === label ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-indigo-300 hover:text-indigo-600'}`}
+                                                >
+                                                    <span>{label}</span>
+                                                    <span className={`ml-2 text-xs py-0.5 px-1.5 rounded-md ${filterCategory === label ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                                                        {labelCounts[label]}
+                                                    </span>
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-gray-500 italic">Belum ada kategori.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                    <h3 className="font-bold text-gray-900 mb-4 flex items-center">
+                                        <i data-lucide="calendar" className="w-5 h-5 mr-2 text-indigo-500"></i> Arsip
+                                    </h3>
+                                    <ul className="space-y-2">
+                                        {Object.keys(archiveCounts).length > 0 ? (
+                                            Object.keys(archiveCounts).map(monthYear => (
+                                                <li key={monthYear}>
+                                                    <button 
+                                                        onClick={() => handleFilterClick(monthYear)}
+                                                        className={`w-full flex justify-between items-center text-sm p-2 rounded-md transition ${filterCategory === monthYear ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600'}`}
+                                                    >
+                                                        <span>{monthYear}</span>
+                                                        <span className="text-xs bg-gray-100 text-gray-500 py-0.5 px-2 rounded-full border border-gray-200">
+                                                            {archiveCounts[monthYear]}
+                                                        </span>
+                                                    </button>
+                                                </li>
+                                            ))
+                                        ) : (
+                                            <li className="text-sm text-gray-500 italic">Belum ada arsip.</li>
+                                        )}
+                                    </ul>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 3. Single Post View
+        const PostView = ({ post, onBack, onLike, onAddComment }) => {
+            const [isLiked, setIsLiked] = useState(false);
+            const [commentName, setCommentName] = useState('');
+            const [commentText, setCommentText] = useState('');
+
+            if (!post) return null;
+
+            const handleLikeClick = () => {
+                if(!isLiked) {
+                    onLike(post.id);
+                    setIsLiked(true);
+                }
+            };
+
+            const handleSubmitComment = (e) => {
+                e.preventDefault();
+                if (commentName.trim() && commentText.trim()) {
+                    onAddComment(post.id, {
+                        user: commentName,
+                        text: commentText
+                    });
+                    setCommentName('');
+                    setCommentText('');
+                    alert('Komentar berhasil ditambahkan!');
+                }
+            };
+
+            return (
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                    <button onClick={onBack} className="mb-6 flex items-center text-gray-600 hover:text-indigo-600 transition">
+                        <i data-lucide="arrow-left" className="w-5 h-5 mr-2"></i> Kembali
+                    </button>
+                    
+                    <article className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-10">
+                        <img src={post.image} className="w-full h-80 object-cover" alt={post.title} onError={(e) => e.target.src = 'https://placehold.co/800x400?text=No+Image'} />
+                        <div className="p-8 md:p-12">
+                            <div className="flex flex-wrap items-center justify-between mb-8">
+                                <div className="flex items-center text-sm text-gray-500 space-x-4 mb-4 sm:mb-0">
+                                    <span className="flex items-center"><i data-lucide="calendar" className="w-4 h-4 mr-2"></i> {post.date}</span>
+                                    <span className="flex items-center"><i data-lucide="user" className="w-4 h-4 mr-2"></i> {post.author}</span>
+                                    <span className="flex items-center"><i data-lucide="eye" className="w-4 h-4 mr-2"></i> {post.views} views</span>
+                                </div>
+                            </div>
+                            
+                            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">{post.title}</h1>
+                            
+                            <div 
+                                className="content-body text-gray-700 text-lg mb-8"
+                                dangerouslySetInnerHTML={{ __html: post.content }}
+                            ></div>
+
+                            <div className="mb-8 pt-6 border-t border-gray-100">
+                                <span className="text-gray-500 text-sm font-semibold mr-2">Label:</span>
+                                {post.labels && post.labels.length > 0 ? (
+                                    post.labels.map((label, index) => (
+                                        <span key={index} className="inline-block bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full mr-2 mb-2">
+                                            #{label}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="text-gray-400 text-sm italic">Tidak ada label</span>
+                                )}
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center pt-6 pb-6 border-t border-gray-100 bg-gray-50 rounded-xl">
+                                <p className="text-gray-600 mb-4 font-medium">Klik untuk menyukai Postingan ini</p>
+                                <button 
+                                    onClick={handleLikeClick}
+                                    disabled={isLiked}
+                                    className={`flex items-center px-6 py-3 rounded-full shadow-sm transition transform hover:scale-105 ${isLiked ? 'bg-pink-500 text-white cursor-default' : 'bg-white border border-gray-200 text-gray-700 hover:border-pink-500 hover:text-pink-500'}`}
+                                >
+                                    <i data-lucide="heart" className={`w-6 h-6 mr-2 ${isLiked ? 'fill-current' : ''}`}></i>
+                                    <span className="font-bold text-lg">{post.likes} Suka</span>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-8 flex items-center">
+                            <i data-lucide="message-circle" className="w-6 h-6 mr-2"></i>
+                            Komentar ({post.comments ? post.comments.length : 0})
+                        </h3>
+
+                        <div className="space-y-6 mb-10">
+                            {post.comments && post.comments.length > 0 ? (
+                                post.comments.map((comment) => (
+                                    <div key={comment.id} className="flex space-x-4 p-4 bg-gray-50 rounded-xl">
+                                        <div className="flex-shrink-0">
+                                            <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-lg">
+                                                {comment.user.charAt(0).toUpperCase()}
+                                            </div>
+                                        </div>
+                                        <div className="flex-grow">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <h4 className="font-bold text-gray-900">{comment.user}</h4>
+                                                <span className="text-xs text-gray-500">{comment.date}</span>
+                                            </div>
+                                            <p className="text-gray-700 text-sm">{comment.text}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-gray-500 italic text-center py-4">Belum ada komentar. Jadilah yang pertama berkomentar!</p>
+                            )}
+                        </div>
+
+                        <div className="border-t border-gray-100 pt-8">
+                            <h4 className="text-lg font-semibold text-gray-900 mb-4">Tulis Komentar</h4>
+                            <form onSubmit={handleSubmitComment}>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nama</label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        className="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                        placeholder="Nama Anda"
+                                        value={commentName}
+                                        onChange={(e) => setCommentName(e.target.value)}
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Pesan</label>
+                                    <textarea 
+                                        required
+                                        rows="3"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                        placeholder="Tulis pendapat Anda di sini..."
+                                        value={commentText}
+                                        onChange={(e) => setCommentText(e.target.value)}
+                                    ></textarea>
+                                </div>
+                                <button type="submit" className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">
+                                    Kirim Komentar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 4. Login View (Updated to use fetch)
+        const LoginView = ({ onLogin, fallbackUsers }) => {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setError('');
+                
+                try {
+                    // Try to connect to API
+                    const res = await fetch(`${API_URL}?action=login`, {
+                        method: 'POST',
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.status === 'success') {
+                        onLogin(data.user);
+                    } else {
+                        setError(data.message || 'Login gagal.');
+                    }
+                } catch (err) {
+                    // Fallback for Preview Mode
+                    console.log("Koneksi Database gagal, beralih ke Mode Preview");
+                    if (fallbackUsers) {
+                        const foundUser = fallbackUsers.find(u => u.username === username && u.password === password);
+                        if (foundUser) {
+                            onLogin(foundUser);
+                        } else {
+                            setError('Username atau Password salah! (Mode Preview: admin/admin123)');
+                        }
+                    } else {
+                        setError('Gagal menghubungkan ke server database.');
+                    }
+                }
+            };
+
+            return (
+                <div className="min-h-[80vh] flex items-center justify-center px-4">
+                    <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                        <div className="text-center mb-8">
+                            <h2 className="text-2xl font-bold text-gray-900">Login Administrator</h2>
+                            <p className="text-gray-500 text-sm mt-2">Masuk untuk mengelola konten blog.</p>
+                        </div>
+                        {error && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>}
+                        <form onSubmit={handleSubmit}>
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Username</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    placeholder="username..."
+                                />
+                            </div>
+                            <div className="mb-6">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                                <input 
+                                    type="password" 
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Password..."
+                                />
+                            </div>
+                            <button type="submit" className="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-700 transition font-semibold hover:font-bold">
+                                Masuk Dashboard
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // 5. Admin Dashboard
+        const AdminDashboard = ({ posts, users, onDelete, onEdit, onCreate }) => {
+            const [activeTab, setActiveTab] = useState('posts'); 
+
+            return (
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">Dashboard Admin</h1>
+                            <p className="text-gray-500 mt-1">Kelola konten dan pengguna blog.</p>
+                        </div>
+                        {activeTab === 'posts' && (
+                            <button 
+                                onClick={onCreate}
+                                className="mt-4 md:mt-0 bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 transition flex items-center font-medium shadow-md"
+                            >
+                                <i data-lucide="plus" className="w-5 h-5 mr-2"></i> Buat Artikel Baru
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="flex space-x-4 mb-6 border-b border-gray-200 overflow-x-auto">
+                        <button 
+                            onClick={() => setActiveTab('posts')}
+                            className={`pb-2 px-1 font-medium text-sm transition whitespace-nowrap ${activeTab === 'posts' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <i data-lucide="file-text" className="inline-block w-4 h-4 mr-1 mb-1"></i> Kelola Artikel
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('users')}
+                            className={`pb-2 px-1 font-medium text-sm transition whitespace-nowrap ${activeTab === 'users' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <i data-lucide="users" className="inline-block w-4 h-4 mr-1 mb-1"></i> Kelola Pengguna
+                        </button>
+                    </div>
+                    
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[400px]">
+                        <div className="overflow-x-auto">
+                            
+                            {activeTab === 'posts' && (
+                                <table className="w-full text-left border-collapse min-w-[600px]">
+                                    <thead>
+                                        <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
+                                            <th className="p-4">Judul Artikel</th>
+                                            <th className="p-4">Statistik</th>
+                                            <th className="p-4">Tanggal</th>
+                                            <th className="p-4 text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {posts.map(post => (
+                                            <tr key={post.id} className="hover:bg-gray-50 transition">
+                                                <td className="p-4 font-medium text-gray-900">
+                                                    {post.title}
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {post.labels && post.labels.map((l, i) => (
+                                                            <span key={i} className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-500">#{l}</span>
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 text-gray-600 text-sm">
+                                                    <div className="flex space-x-3">
+                                                        <span className="flex items-center" title="Views"><i data-lucide="eye" className="w-3 h-3 mr-1"></i> {post.views}</span>
+                                                        <span className="flex items-center" title="Likes"><i data-lucide="heart" className="w-3 h-3 mr-1"></i> {post.likes}</span>
+                                                        <span className="flex items-center" title="Comments"><i data-lucide="message-circle" className="w-3 h-3 mr-1"></i> {post.comments ? post.comments.length : 0}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 text-gray-500 text-sm">{post.date}</td>
+                                                <td className="p-4 text-center space-x-2 flex justify-center">
+                                                    <button 
+                                                        onClick={() => onEdit(post)}
+                                                        className="bg-yellow-100 text-yellow-700 p-2 rounded hover:bg-yellow-200 transition"
+                                                        title="Edit"
+                                                    >
+                                                        <i data-lucide="edit-3" className="w-4 h-4"></i>
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            if(confirm('Yakin ingin menghapus artikel ini dari Database?')) onDelete(post.id);
+                                                        }}
+                                                        className="bg-red-100 text-red-700 p-2 rounded hover:bg-red-200 transition"
+                                                        title="Hapus"
+                                                    >
+                                                        <i data-lucide="trash-2" className="w-4 h-4"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {posts.length === 0 && (
+                                            <tr>
+                                                <td colSpan="4" className="p-8 text-center text-gray-500">
+                                                    Tidak ada data. Silakan buat artikel baru.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            )}
+
+                            {activeTab === 'users' && (
+                                <div className="p-4 text-center text-gray-500">
+                                    <p>DATA PENGGUNA LUPA DIKODING</p>
+                                    <p className="text-xs mt-2">udah ahh maless biarin kosong ajee</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const RichTextEditor = ({ content, onChange }) => {
+            const editorRef = useRef(null);
+            
+            useEffect(() => {
+                if (editorRef.current && editorRef.current.innerHTML !== content) {
+                    editorRef.current.innerHTML = content;
+                }
+            }, []); 
+
+            const execCmd = (command, value = null) => {
+                document.execCommand(command, false, value);
+                editorRef.current.focus();
+                handleChange();
+            };
+
+            const handleChange = () => {
+                if (onChange && editorRef.current) {
+                    onChange(editorRef.current.innerHTML);
+                }
+            };
+
+            const promptLink = () => {
+                const url = prompt("Masukkan URL Link (contoh: https://google.com):", "http://");
+                const text = prompt("Masukkan Teks yang ditampilkan:", "Klik disini");
+                if (url && text) {
+                    const html = `<a href="${url}" target="_blank">${text}</a>`;
+                    document.execCommand('insertHTML', false, html);
+                    handleChange();
+                }
+            };
+
+            const promptImage = () => {
+                const url = prompt("Masukkan URL Gambar:", "http://");
+                if (url) {
+                    execCmd('insertImage', url);
+                }
+            };
+
+            const promptVideo = () => {
+                const url = prompt("Masukkan URL Embed Video (Youtube/Lainnya):", "https://www.youtube.com/embed/...");
+                if (url) {
+                    const html = `<iframe width="560" height="315" src="${url}" frameborder="0" allowfullscreen></iframe>`;
+                    document.execCommand('insertHTML', false, html);
+                    handleChange();
+                }
+            };
+
+            return (
+                <div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+                    <div className="flex flex-wrap items-center gap-2 p-2 bg-gray-50 border-b border-gray-200">
+                        <select 
+                            onChange={(e) => execCmd('formatBlock', e.target.value)} 
+                            className="p-1 border border-gray-300 rounded text-sm bg-white"
+                        >
+                            <option value="P">Paragraph</option>
+                            <option value="H1">Heading 1</option>
+                            <option value="H2">Heading 2</option>
+                            <option value="H3">Heading 3</option>
+                        </select>
+                        <select 
+                            onChange={(e) => execCmd('fontName', e.target.value)}
+                            className="p-1 border border-gray-300 rounded text-sm bg-white"
+                        >
+                            <option value="Inter">Default</option>
+                            <option value="Arial">Arial</option>
+                            <option value="Courier New">Courier</option>
+                            <option value="Georgia">Georgia</option>
+                        </select>
+                        <div className="flex items-center border border-gray-300 rounded bg-white px-1">
+                            <span className="text-xs text-gray-500 mr-1">A</span>
+                            <input 
+                                type="color" 
+                                onChange={(e) => execCmd('foreColor', e.target.value)}
+                                title="Warna Teks"
+                                className="w-6 h-6 border-none cursor-pointer bg-transparent"
+                            />
+                        </div>
+                        <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                        <button type="button" onClick={() => execCmd('bold')} className="p-1 hover:bg-gray-200 rounded" title="Bold"><i data-lucide="bold" className="w-4 h-4"></i></button>
+                        <button type="button" onClick={() => execCmd('italic')} className="p-1 hover:bg-gray-200 rounded" title="Italic"><i data-lucide="italic" className="w-4 h-4"></i></button>
+                        <button type="button" onClick={() => execCmd('underline')} className="p-1 hover:bg-gray-200 rounded" title="Underline"><i data-lucide="underline" className="w-4 h-4"></i></button>
+                        <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                        <button type="button" onClick={() => execCmd('justifyLeft')} className="p-1 hover:bg-gray-200 rounded" title="Rata Kiri"><i data-lucide="align-left" className="w-4 h-4"></i></button>
+                        <button type="button" onClick={() => execCmd('justifyCenter')} className="p-1 hover:bg-gray-200 rounded" title="Rata Tengah"><i data-lucide="align-center" className="w-4 h-4"></i></button>
+                        <button type="button" onClick={() => execCmd('justifyRight')} className="p-1 hover:bg-gray-200 rounded" title="Rata Kanan"><i data-lucide="align-right" className="w-4 h-4"></i></button>
+                        <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                        <button type="button" onClick={() => execCmd('insertUnorderedList')} className="p-1 hover:bg-gray-200 rounded" title="Bullet List"><i data-lucide="list" className="w-4 h-4"></i></button>
+                        <button type="button" onClick={() => execCmd('insertOrderedList')} className="p-1 hover:bg-gray-200 rounded" title="Numbered List"><i data-lucide="list-ordered" className="w-4 h-4"></i></button>
+                        <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                        <button type="button" onClick={promptLink} className="p-1 hover:bg-gray-200 rounded" title="Link (URL)"><i data-lucide="link" className="w-4 h-4"></i></button>
+                        <button type="button" onClick={promptImage} className="p-1 hover:bg-gray-200 rounded" title="Gambar"><i data-lucide="image" className="w-4 h-4"></i></button>
+                        <button type="button" onClick={promptVideo} className="p-1 hover:bg-gray-200 rounded" title="Video"><i data-lucide="video" className="w-4 h-4"></i></button>
+                    </div>
+                    <div 
+                        ref={editorRef}
+                        className="editor-content p-4 min-h-[300px] focus:outline-none"
+                        contentEditable={true}
+                        onInput={handleChange}
+                    ></div>
+                </div>
+            );
+        };
+
+        // 6. Post Editor
+        const PostEditor = ({ post, onSave, onCancel }) => {
+            const [formData, setFormData] = useState({
+                title: post ? post.title : '',
+                content: post ? post.content : '',
+                image: post ? post.image : '',
+                author: post ? post.author : 'Admin',
+                labels: post && post.labels ? post.labels.join(', ') : ''
+            });
+            // State untuk menyimpan file yang dipilih
+            const [imageFile, setImageFile] = useState(null);
+            // State untuk preview gambar upload
+            const [previewUrl, setPreviewUrl] = useState(null);
+
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
+            };
+
+            // Handler khusus untuk input file
+            const handleFileChange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    setImageFile(file);
+                    // Buat preview lokal
+                    setPreviewUrl(URL.createObjectURL(file));
+                }
+            };
+
+            const handleContentChange = (html) => {
+                setFormData(prev => ({ ...prev, content: html }));
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                const excerpt = stripHtml(formData.content).substring(0, 100) + '...';
+                
+                // Kirim data mentah ke parent (App component), nanti App yang akan convert ke FormData
+                onSave({
+                    ...formData,
+                    excerpt,
+                    id: post ? post.id : null,
+                    date: post ? post.date : null,
+                    views: post ? post.views : 0,
+                    likes: post ? post.likes : 0,
+                    comments: post ? post.comments : [],
+                    imageFile: imageFile // Sertakan file gambar jika ada
+                });
+            };
+
+            return (
+                <div className="max-w-4xl mx-auto px-4 py-10">
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                        <div className="flex justify-between items-center mb-6 border-b pb-4">
+                            <h2 className="text-2xl font-bold text-gray-900">{post ? 'Edit Artikel' : 'Artikel Baru'}</h2>
+                            <button onClick={onCancel} className="text-gray-500 hover:text-gray-700">
+                                <i data-lucide="x" className="w-6 h-6"></i>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Judul Artikel</label>
+                                <input 
+                                    type="text" 
+                                    name="title"
+                                    required
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                    value={formData.title}
+                                    onChange={handleChange}
+                                    placeholder="Masukkan judul yang menarik..."
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Gambar Header</label>
+                                    
+                                    {/* Opsi 1: URL Manual */}
+                                    <input 
+                                        type="text" 
+                                        name="image"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none mb-2"
+                                        value={formData.image}
+                                        onChange={handleChange}
+                                        placeholder="https://... (URL Gambar)"
+                                    />
+                                    
+                                    <div className="text-center text-xs text-gray-400 mb-2">- ATAU -</div>
+
+                                    {/* Opsi 2: Upload File */}
+                                    <input 
+                                        type="file" 
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Upload foto dari perangkat Anda.</p>
+
+                                    {/* Preview Gambar */}
+                                    {(previewUrl || formData.image) && (
+                                        <div className="mt-3 relative h-32 w-full bg-gray-100 rounded overflow-hidden border border-gray-200">
+                                            <img 
+                                                src={previewUrl || formData.image} 
+                                                alt="Preview" 
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => e.target.style.display = 'none'} 
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Penulis</label>
+                                    <input 
+                                        type="text" 
+                                        name="author"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                        value={formData.author}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Label (Tag)</label>
+                                <input 
+                                    type="text" 
+                                    name="labels"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                    value={formData.labels}
+                                    onChange={handleChange}
+                                    placeholder="Contoh: Tutorial, Teknologi, Pemrograman (Pisahkan dengan koma)"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Gunakan koma untuk memisahkan beberapa label.</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Isi Konten</label>
+                                <RichTextEditor 
+                                    content={formData.content} 
+                                    onChange={handleContentChange} 
+                                />
+                            </div>
+
+                            <div className="flex justify-end pt-4 space-x-3">
+                                <button 
+                                    type="button" 
+                                    onClick={onCancel}
+                                    className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    className="px-5 py-2.5 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition shadow-sm"
+                                >
+                                    {post ? 'Simpan Perubahan' : 'Terbitkan'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP COMPONENT ---
+        const App = () => {
+            // ... (Kode state dan effect fetchPosts sama seperti sebelumnya) ...
+            const [view, setView] = useState('home'); 
+            const [posts, setPosts] = useState([]);
+            const [users, setUsers] = useState([]); 
+            const [user, setUser] = useState(null); 
+            const [activePost, setActivePost] = useState(null); 
+
+            // Preview Fallback Users
+            const fallbackUsers = [
+                { id: 1, username: 'adm', password: '123', name: 'Super Admin', role: 'admin' },
+                { id: 2, username: '', password: '', name: 'Admin', role: 'editor' }
+            ];
+
+            const fetchPosts = async () => {
+                try {
+                    const response = await fetch(`${API_URL}?action=get_posts`);
+                    const data = await response.json();
+                    if (Array.isArray(data)) {
+                        setPosts(data);
+                    } else {
+                        console.error("Data invalid:", data);
+                        setPosts(initialPosts); 
+                    }
+                } catch (error) {
+                    console.error("Gagal mengambil data API, pakai Dummy.", error);
+                    setPosts(initialPosts);
+                }
+            };
+
+            useEffect(() => {
+                fetchPosts();
+                const session = sessionStorage.getItem('blogger_user');
+                if (session) setUser(JSON.parse(session));
+            }, []);
+
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [view, posts]);
+
+            // ... (Auth, View, Like, Comment, Delete Logic sama seperti sebelumnya) ...
+            const handleLogin = (userData) => {
+                setUser(userData);
+                sessionStorage.setItem('blogger_user', JSON.stringify(userData));
+                setView('admin');
+            };
+
+            const handleLogout = () => {
+                setUser(null);
+                sessionStorage.removeItem('blogger_user');
+                setView('home');
+            };
+
+            const handleViewPost = async (post) => {
+                const updatedPosts = posts.map(p => 
+                    p.id === post.id ? { ...p, views: (parseInt(p.views) || 0) + 1 } : p
+                );
+                setPosts(updatedPosts);
+                const updatedPost = updatedPosts.find(p => p.id === post.id);
+                setActivePost(updatedPost);
+                setView('post');
+                window.scrollTo(0, 0);
+                try {
+                    await fetch(`${API_URL}?action=view_post`, {
+                        method: 'POST', body: JSON.stringify({ id: post.id })
+                    });
+                } catch(e) {}
+            };
+
+            const handleLikePost = async (postId) => {
+                const updatedPosts = posts.map(p => 
+                    p.id === postId ? { ...p, likes: (parseInt(p.likes) || 0) + 1 } : p
+                );
+                setPosts(updatedPosts);
+                if (activePost && activePost.id === postId) {
+                    setActivePost(prev => ({ ...prev, likes: (parseInt(prev.likes) || 0) + 1 }));
+                }
+                try {
+                    await fetch(`${API_URL}?action=like_post`, {
+                        method: 'POST', body: JSON.stringify({ id: postId })
+                    });
+                } catch(e) {}
+            };
+            
+            const handleAddComment = async (postId, commentData) => {
+                try {
+                    const res = await fetch(`${API_URL}?action=add_comment`, {
+                        method: 'POST', 
+                        body: JSON.stringify({ post_id: postId, user: commentData.user, text: commentData.text })
+                    });
+                    const result = await res.json();
+                    if(result.status === 'success') {
+                        fetchPosts();
+                        const newComment = {
+                            id: result.id || generateId(),
+                            user: commentData.user,
+                            text: commentData.text,
+                            date: getCurrentDate()
+                        };
+                        setActivePost(prev => ({
+                            ...prev,
+                            comments: prev.comments ? [newComment, ...prev.comments] : [newComment]
+                        }));
+                    }
+                } catch (e) {
+                    const newComment = { id: generateId(), user: commentData.user, text: commentData.text, date: getCurrentDate() };
+                    setActivePost(prev => ({ ...prev, comments: prev.comments ? [newComment, ...prev.comments] : [newComment] }));
+                }
+            };
+
+            const handleDeletePost = async (id) => {
+                try {
+                    const res = await fetch(`${API_URL}?action=delete_post`, {
+                        method: 'POST', body: JSON.stringify({ id })
+                    });
+                    const result = await res.json();
+                    if(result.status === 'success') {
+                        setPosts(posts.filter(p => p.id !== id));
+                    } else {
+                        alert("Gagal menghapus: " + result.message);
+                    }
+                } catch (e) {
+                    setPosts(posts.filter(p => p.id !== id));
+                }
+            };
+
+            // 7. Save/Update Logic (UPDATED FOR FILE UPLOAD)
+            const handleSavePost = async (postData) => {
+                const isUpdate = postData.id && posts.some(p => p.id === postData.id);
+                const action = isUpdate ? 'update_post' : 'create_post';
+
+                // Gunakan FormData untuk mengirim file dan teks sekaligus
+                const formData = new FormData();
+                formData.append('title', postData.title);
+                formData.append('content', postData.content);
+                formData.append('author', postData.author);
+                formData.append('image', postData.image); // URL manual jika ada
+                formData.append('labels', postData.labels);
+                
+                if (postData.id) formData.append('id', postData.id);
+                if (postData.imageFile) formData.append('image_file', postData.imageFile); // File gambar
+
+                try {
+                    // PENTING: Jangan set Header Content-Type, biarkan browser yang atur multipart/form-data
+                    const res = await fetch(`${API_URL}?action=${action}`, {
+                        method: 'POST', 
+                        body: formData 
+                    });
+                    const result = await res.json();
+
+                    if (result.status === 'success') {
+                        alert(result.message);
+                        fetchPosts(); // Refresh agar gambar dari server tampil
+                        setView('admin');
+                        setActivePost(null);
+                    } else {
+                        alert("Gagal menyimpan: " + result.message);
+                    }
+                } catch (e) {
+                    console.log("Mode Preview Save (Image upload not supported in preview)");
+                    if (isUpdate) {
+                        setPosts(posts.map(p => p.id === postData.id ? {...postData, image: postData.imageFile ? URL.createObjectURL(postData.imageFile) : postData.image} : p));
+                    } else {
+                        setPosts([{...postData, id: generateId(), date: getCurrentDate(), image: postData.imageFile ? URL.createObjectURL(postData.imageFile) : postData.image}, ...posts]);
+                    }
+                    setView('admin');
+                    setActivePost(null);
+                }
+            };
+
+            const openEditor = (post = null) => {
+                setActivePost(post);
+                setView('editor');
+            };
+
+            const renderView = () => {
+                // ... (Sama seperti sebelumnya) ...
+                switch(view) {
+                    case 'home':
+                        return <HomeView posts={posts} onViewPost={handleViewPost} />;
+                    case 'post':
+                        return <PostView 
+                                    post={activePost} 
+                                    onBack={() => setView('home')} 
+                                    onLike={handleLikePost} 
+                                    onAddComment={handleAddComment}
+                                />;
+                    case 'login':
+                        return <LoginView onLogin={handleLogin} fallbackUsers={fallbackUsers} />;
+                    case 'admin':
+                        if (!user) return <LoginView onLogin={handleLogin} fallbackUsers={fallbackUsers} />;
+                        return <AdminDashboard 
+                                    posts={posts} 
+                                    users={users}
+                                    onDelete={handleDeletePost} 
+                                    onEdit={openEditor}
+                                    onCreate={() => openEditor(null)} 
+                                />;
+                    case 'editor':
+                        if (!user) return <LoginView onLogin={handleLogin} fallbackUsers={fallbackUsers} />;
+                        return <PostEditor 
+                                    post={activePost} 
+                                    onSave={handleSavePost} 
+                                    onCancel={() => setView('admin')} 
+                                />;
+                    default:
+                        return <HomeView posts={posts} />;
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    <Navbar 
+                        onViewChange={setView} 
+                        currentView={view} 
+                        user={user} 
+                        onLogout={handleLogout} 
+                    />
+                    <main className="flex-grow">
+                        {renderView()}
+                    </main>
+                    {/* ... (Footer sama seperti sebelumnya) ... */}
+                    <footer className="bg-white border-t border-gray-200 mt-12">
+                        <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-4">Hubungi Kami</h3>
+                                    <p className="text-gray-600 text-sm mb-2">Email: ejotsquad087@gmail.com</p>
+                                    <p className="text-gray-600 text-sm mb-4">Telepon: +62-812-3456-7890</p>
+                                    <div className="flex space-x-4 mt-4">
+                                        <a href="#" target="_blank" className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:bg-indigo-100 hover:text-indigo-600 cursor-pointer transition"><i data-lucide="facebook" className="w-4 h-4"></i></a>
+                                        <a href="#" target="_blank" className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:bg-indigo-100 hover:text-indigo-600 cursor-pointer transition"><i data-lucide="twitter" className="w-4 h-4"></i></a>
+                                        <a href="#" target="_blank" className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:bg-indigo-100 hover:text-indigo-600 cursor-pointer transition"><i data-lucide="instagram" className="w-4 h-4"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-gray-900 py-6 border-t border-gray-100">
+                            <div className="max-w-7xl mx-auto px-4 text-center text-gray-100 text-lg">
+                                <p>&copy; {new Date().getFullYear()} MyBlog Platform. All rights reserved.</p>
+                                <p className="mt-2 text-xs">Halaman Blog <a href="#" alt="FEBRI MANGASHI BIO NILLE" className="text-white hover:text-red-900">FEBRI MANGASHI BIO NILLE</a></p>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
